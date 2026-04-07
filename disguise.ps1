@@ -6,8 +6,9 @@ try {
     $trigger = New-ScheduledTaskTrigger -AtStartup
 
     $settings = New-ScheduledTaskSettingsSet `
-        -ExecutionTimeLimit (New-TimeSpan -Hours 0) `
-        -RestartCount 3 `
+        #-ExecutionTimeLimit (New-TimeSpan -Hours 0) `
+        #-RestartCount 3 `
+        -RestartCount 300 `
         -RestartInterval (New-TimeSpan -Minutes 1)
 
     Register-ScheduledTask `
